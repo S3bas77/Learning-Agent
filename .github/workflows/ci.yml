@@ -1,51 +1,41 @@
-name: CI Pipeline
+name: CI
 
 on:
-  push:
-    branches:
-      - main
-      - qa
-      - task-01
   pull_request:
     branches:
       - main
       - qa
-      - task-01
+  push:
+    branches:
+      - main
+      - qa
 
 jobs:
-  build:
+  build-and-test:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout
+      # 1. Clonar repo
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # 2. Configurar Node.js
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: 20
+      # 2. Instalar dependencias del client
+      - name: Install dependencies (client)
+        run: npm --prefix client install
 
+      # 3. Instalar dependencias del backend
       - name: Install dependencies (backend)
-        working-directory: ./backend
-        run: npm install
+        run: npm --prefix backend install
 
-      - name: Install dependencies (frontend)
-        working-directory: ./client
-        run: npm install
+      # 4. Validar ESLint
+      - name: Run ESLint
+        run: npx lint-staged --allow-empty
 
-      - name: Run ESLint (frontend)
-        working-directory: ./client
+      # 5. Validar mensajes de commit (solo en PR)
+      - name: Commitlint
+        if: github.event_name == 'pull_request'
         run: |
-          npm run lint || true
-
-      - name: Run ESLint (backend)
-        working-directory: ./backend
-        run: |
-          npm run lint || true
-
-      # 5. Validar commits
-      - name: Validate commit messages
-        run: npx commitlint --from=HEAD~10 --to=HEAD || true
-
+          echo "${{ github.event.pull_request.title }}" | npx commitlint
+      # 6. Ejecutar pruebas unitarias del backend
+      - name: Run tests (backend)
+        run: npm --prefix backend run test -- --passWithNoTests

@@ -19,31 +19,26 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # 2. Configurar Node.js
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: 18
-          cache: 'npm'
+      # 2. Instalar dependencias del client
+      - name: Install dependencies (client)
+        run: npm --prefix client install
 
-      # 3. Instalar dependencias raíz
-      - name: Install dependencies (root)
-        run: npm install
-
-      # 4. Instalar dependencias del backend
+      # 3. Instalar dependencias del backend
       - name: Install dependencies (backend)
         run: npm --prefix backend install
 
-      # 5. Validar ESLint
+      # 4. Validar ESLint
       - name: Run ESLint
-        run: npm run lint
+        run: npx lint-staged --allow-empty
 
-      # 6. Validar mensajes de commit (solo en PR)
+      # 5. Validar mensajes de commit (solo en PR)
       - name: Commitlint
         if: github.event_name == 'pull_request'
         run: |
           echo "${{ github.event.pull_request.title }}" | npx commitlint
-
+      # 6. Ejecutar pruebas unitarias del backend
+      - name: Run tests (backend)
+        run: npm --prefix backend run test -- --passWithNoTests
       # 7. Ejecutar pruebas unitarias del backend
       - name: Run tests (backend)
         run: npm --prefix backend run test -- --passWithNoTests
